@@ -1,0 +1,36 @@
+{
+  "bureaux": [
+    { "numero": "01", "nom": "Maison de l’Enfance et de la Famille", "adresse": "1 rue des Grainetiers" },
+    { "numero": "02", "nom": "École primaire Jules Ferry", "adresse": "2 place Jules Ferry" },
+    { "numero": "03", "nom": "Salle de la Justice de Paix", "adresse": "7 rue du Faubourg Assiquet" },
+    { "numero": "04", "nom": "École maternelle Charles Perrault", "adresse": "2 avenue du Président Wilson" },
+    { "numero": "05", "nom": "École maternelle Jules Collet", "adresse": "19 avenue Charles de Gaulle" },
+    { "numero": "06", "nom": "École maternelle Marius Grout", "adresse": "38 rue Paul Éluard" },
+    { "numero": "07", "nom": "Centre social Jean Moulin", "adresse": "23 bis rue Pablo Picasso" },
+    { "numero": "08", "nom": "École maternelle Jean de La Fontaine", "adresse": "2 avenue du Président Wilson" },
+    { "numero": "09", "nom": "École maternelle Pont Callouard", "adresse": "30 rue du Pont Callouard" },
+    { "numero": "10", "nom": "École primaire Victor Hugo", "adresse": "1 place du Champ de Foire" },
+    { "numero": "11", "nom": "École primaire Jules Collet", "adresse": "19 avenue Charles de Gaulle" },
+    { "numero": "12", "nom": "École primaire Marius Grout", "adresse": "38 rue Paul Éluard" },
+    { "numero": "13", "nom": "Maison de quartier de la Coudraie", "adresse": "10 rue de la Coudraie" },
+    { "numero": "14", "nom": "École primaire Louise Michel", "adresse": "4 rue Pablo Picasso" }
+  ],
+
+  "rues": {
+    "Rue des Meuniers": "01",
+    "Rue des Grainetiers": "01",
+    "Rue René Coty": "02",
+    "Rue de la République": "02",
+    "Rue du Faubourg Assiquet": "03",
+    "Rue des Lombards": "04",
+    "Avenue Charles de Gaulle": "05",
+    "Rue Paul Éluard": "06",
+    "Rue Pablo Picasso": "07",
+    "Rue du Pont Callouard": "09",
+    "Rue de Verdun": "10",
+    "Rue du Languedoc": "11",
+    "Rue Max Jacob": "12",
+    "Rue de la Coudraie": "13",
+    "Rue Jean-Baptiste Clément": "14"
+  }
+}
