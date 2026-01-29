@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Trouver son bureau de vote – Montivilliers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f6f6f6;
+}
+#bloc {
+  background: #ffffff;
+  padding: 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+label {
+  font-weight: bold;
+}
+input, button {
+  width: 100%;
+  padding: 0.6rem;
+  margin-top: 0.5rem;
+  font-size: 1rem;
+}
+button {
+  background: #003a5d;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+button:hover {
+  background: #005a87;
+}
+#resultat {
+  margin-top: 1rem;
+  font-weight: bold;
+}
+.mention {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+</style>
+</head>
+
+<body>
+
+<div id="bloc">
+  <label for="adresse">Entrez votre adresse :</label>
+  <input id="adresse" placeholder="Ex : 12 rue de la République, Montivilliers">
+  <button onclick="chercher()">Rechercher</button>
+
+  <div id="resultat"></div>
+
+  <div class="mention">
+    Ce service est fourni à titre indicatif.  
+    En cas de doute, l’avis de situation électorale fait foi.
+  </div>
+</div>
+
+<script>
+let DATA = null;
+
+fetch("data-bureaux.json")
+  .then(r => r.json())
+  .then(d => DATA = d);
+
+async function chercher() {
+  const champ = document.getElementById("adresse");
+  const res = document.getElementById("resultat");
+  res.innerText = "Recherche en cours…";
+
+  const response = await fetch(
+    "https://api-adresse.data.gouv.fr/search/?q=" +
+    encodeURIComponent(champ.value) + "&limit=1"
+  );
+  const data = await response.json();
+
+  if (!data.features.length) {
+    res.innerText = "Adresse non reconnue.";
+    return;
+  }
+
+  const rue = data.features[0].properties.street;
+  const bureauNum = DATA.rues[rue];
+
+  if (!bureauNum) {
+    res.innerText =
+      "Cette adresse nécessite une vérification. Merci de contacter le service élections.";
+    return;
+  }
+
+  const bureau = DATA.bureaux.find(b => b.numero === bureauNum);
+
+  res.innerHTML =
+    "✅ Votre bureau de vote est :<br>" +
+    "<strong>Bureau " + bureau.numero + " – " + bureau.nom + "</strong><br>" +
+    "📍 " + bureau.adresse;
+}
+</script>
+
+</body>
+</html>
