@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Trouver son bureau de vote – Ville de Montivilliers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+:root {
+  --couleur-action: #e61b5c;
+  --couleur-action-hover: #c91650;
+  --couleur-fond: #f4f6f8;
+  --couleur-texte: #1a1a1a;
+  --couleur-succes: #2e8b57;
+  --couleur-erreur: #b00020;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--couleur-fond);
+  color: var(--couleur-texte);
+}
+
+#bloc {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.2rem;
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* === GRILLE PREMIUM === */
+#contenu {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.2rem;
+}
+
+@media (min-width: 900px) {
+  #contenu {
+    grid-template-columns: 1fr 1.2fr;
+    align-items: start;
+  }
+}
+
+label {
+  font-weight: bold;
+}
+
+input {
+  width: 100%;
+  padding: 0.6rem;
+  margin-top: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--couleur-action);
+}
+
+button {
+  width: 100%;
+  margin-top: 0.8rem;
+  padding: 0.7rem;
+  font-size: 1rem;
+  font-weight: bold;
+  background: var(--couleur-action);
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--couleur-action-hover);
+}
+
+#resultat {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 4px;
+}
+
+#resultat.succes {
+  background: #e8f3ee;
+  border-left: 4px solid var(--couleur-succes);
+}
+
+#resultat.erreur {
+  background: #fbeaea;
+  border-left: 4px solid var(--couleur-erreur);
+}
+
+#map {
+  height: 380px;
+  border-radius: 6px;
+  display: none;
+}
+
+.mention {
+  margin-top: 1.2rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+</style>
+</head>
+
+<body>
+
+<div id="bloc">
+
+  <div id="contenu">
+
+    <!-- COLONNE FORMULAIRE -->
+    <div>
+      <label for="adresse">Entrez votre adresse :</label>
+      <input id="adresse" placeholder="Ex : 12 avenue Charles de Gaule, Montivilliers">
+      <button onclick="chercher()">Rechercher</button>
+      <div id="resultat"></div>
+    </div>
+
+    <!-- COLONNE CARTE -->
+    <div id="map"></div>
+
+  </div>
+
+  <div class="mention">
+    Les informations relatives à votre bureau de vote figurent également sur votre carte électorale.
+    En cas de doute, vous pouvez vérifier votre situation électorale sur le site
+   <a href="https://www.service-public.fr/particuliers/vosdroits/services-en-ligne-et-formulaires/ISE"> <strong>Service-public.fr</strong>.</a>
+    <br><em>La carte est fournie à titre illustratif.</em>
+  </div>
+
+</div>
+
+<script>
+let DATA;
+let RUES = {};
+let map, markerAdresse, markerBureau;
+
+const LIMITES_MONTIVILLIERS = [
+  [49.550, 0.160],
+  [49.575, 0.205]
+];
+
+function normaliser(t) {
+  return t.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\b(de|du|des|la|le|l')\b/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+fetch("data-bureaux.json")
+  .then(r => r.json())
+  .then(d => {
+    DATA = d;
+    Object.entries(d.rues_simples).forEach(([rue, bureau]) => {
+      RUES[normaliser(rue)] = { type: "simple", bureau };
+    });
+    Object.entries(d.rues_a_cheval).forEach(([rue, regles]) => {
+      RUES[normaliser(rue)] = { type: "complexe", regles };
+    });
+  });
+
+async function chercher() {
+  const res = document.getElementById("resultat");
+  const mapDiv = document.getElementById("map");
+  res.className = "";
+  res.textContent = "Recherche en cours…";
+  mapDiv.style.display = "none";
+
+  const saisie = document.getElementById("adresse").value;
+  const r = await fetch("https://api-adresse.data.gouv.fr/search/?q=" + encodeURIComponent(saisie) + "&limit=1");
+  const d = await r.json();
+  if (!d.features.length) {
+    res.className = "erreur";
+    res.textContent = "Adresse non reconnue.";
+    return;
+  }
+
+  const props = d.features[0].properties;
+  const lat = d.features[0].geometry.coordinates[1];
+  const lon = d.features[0].geometry.coordinates[0];
+  const rueNorm = normaliser(props.street || "");
+  const numero = parseInt(props.housenumber, 10);
+
+  let entree = RUES[rueNorm];
+  if (!entree) {
+    res.className = "erreur";
+    res.textContent = "Adresse à vérifier auprès du service élections.";
+    return;
+  }
+
+  let bureauNum = entree.type === "simple"
+    ? entree.bureau
+    : entree.regles.regles.find(r => numero >= r.min && numero <= r.max)?.bureau;
+
+  const bureau = DATA.bureaux.find(b => b.numero === bureauNum);
+  res.className = "succes";
+  res.innerHTML = `✅ <strong>Bureau ${bureau.numero} – ${bureau.nom}</strong><br>📍 ${bureau.adresse}`;
+
+  const rb = await fetch("https://api-adresse.data.gouv.fr/search/?q=" + encodeURIComponent(bureau.adresse + ", Montivilliers") + "&limit=1");
+  const db = await rb.json();
+  if (!db.features.length) return;
+
+  const latB = db.features[0].geometry.coordinates[1];
+  const lonB = db.features[0].geometry.coordinates[0];
+
+  if (!map) {
+    map = L.map("map", {
+      maxBounds: LIMITES_MONTIVILLIERS,
+      maxBoundsViscosity: 1.0
+    });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+  }
+
+  if (markerAdresse) markerAdresse.remove();
+  if (markerBureau) markerBureau.remove();
+
+  markerAdresse = L.marker([lat, lon]).addTo(map).bindPopup("Votre adresse");
+  markerBureau = L.marker([latB, lonB]).addTo(map).bindPopup("Votre bureau de vote");
+
+  const group = L.featureGroup([markerAdresse, markerBureau]);
+  map.fitBounds(group.getBounds().pad(0.4));
+  map.setMinZoom(map.getZoom());
+
+  mapDiv.style.display = "block";
+}
+</script>
+
+</body>
+</html>
